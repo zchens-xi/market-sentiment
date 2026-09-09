@@ -1,0 +1,16 @@
+pandas
+tushare
+requests  # 替代selenium，用于API调用
+jieba
+pystopwords
+transformers
+torch
+lxml
+openpyxl
+plotly  # 用于生成交互式图表
+jinja2  # 用于生成HTML报告
+flask
+scikit-learn
+matplotlib  # 用于词频分析图表
+seaborn  # 用于美化图表
+wordcloud  # 用于生成词云图
