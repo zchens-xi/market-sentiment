@@ -41,9 +41,13 @@ class SentimentAnalyzer:
             print("没有已有数据，所有评论都需要分析")
             return processed_comment_df
 
+        # 确保时间列格式一致
         processed_comment_df['timestamp'] = pd.to_datetime(processed_comment_df['timestamp'])
 
+        # 基于内容去重，而不是只看时间
+        # 使用 comment_text 和 timestamp 的组合来判断是否为新数据
         if 'comment_text' in existing_sentiment_df.columns:
+            # 创建唯一标识符
             existing_keys = set(
                 existing_sentiment_df['comment_text'].astype(str) + '|' +
                 existing_sentiment_df['timestamp'].astype(str)
@@ -54,6 +58,7 @@ class SentimentAnalyzer:
                 processed_comment_df['timestamp'].astype(str)
             )
 
+            # 过滤出真正的新评论（基于内容+时间的唯一性）
             mask = ~processed_keys.isin(existing_keys)
             new_comments = processed_comment_df[mask]
 
@@ -66,6 +71,7 @@ class SentimentAnalyzer:
                 print(f"新数据时间范围: {time_range}")
 
         else:
+            # 兜底逻辑：如果已有数据格式不匹配，使用时间过滤
             print("使用时间过滤方式进行增量分析")
             latest_analyzed_time = existing_sentiment_df['timestamp'].max()
             new_comments = processed_comment_df[processed_comment_df['timestamp'] > latest_analyzed_time]
@@ -90,7 +96,7 @@ class SentimentAnalyzer:
                 sentiment_scores.append(1)
             elif res['label'] == 'Negative':
                 sentiment_scores.append(-1)
-            else:
+            else:  # Neutral
                 sentiment_scores.append(0)
 
         print("情感分析完成。")
@@ -104,6 +110,7 @@ class SentimentAnalyzer:
         if new_analyzed_df.empty:
             return existing_df
 
+        # 合并数据并按时间排序
         merged_df = pd.concat([existing_df, new_analyzed_df], ignore_index=True)
         merged_df = merged_df.sort_values('timestamp').reset_index(drop=True)
 
@@ -114,9 +121,13 @@ class SentimentAnalyzer:
         """增量情感分析处理"""
         print("--- 开始增量情感分析 ---")
 
+        # 1. 加载已有的情感分析数据
         existing_sentiment_df = self.load_existing_sentiment_data(stock_code)
+
+        # 2. 过滤出需要新分析的评论
         new_comments_df = self.filter_new_comments(processed_comment_df, existing_sentiment_df)
 
+        # 3. 对新评论进行情感分析
         if not new_comments_df.empty:
             new_sentiment_scores = self.analyze_batch(list(new_comments_df['cleaned_text']))
             new_comments_df = new_comments_df.copy()
@@ -125,14 +136,18 @@ class SentimentAnalyzer:
             print("没有新评论需要分析")
             new_comments_df = pd.DataFrame()
 
+        # 4. 合并已有数据和新分析的数据
         complete_sentiment_df = self.merge_sentiment_data(existing_sentiment_df, new_comments_df)
+
         return complete_sentiment_df, len(new_comments_df)
 
     def aggregate_sentiment_daily(self, df):
         """将每条评论的情感分数按天聚合成每日情感指数，包含统计指标。"""
         print("开始按天聚合情感指数...")
 
+        # 检查必需的列
         if 'timestamp' not in df.columns or 'sentiment_score' not in df.columns:
+            # 兼容旧的列名
             if 'comment_date' in df.columns:
                 df = df.rename(columns={'comment_date': 'timestamp'})
             else:
@@ -142,13 +157,16 @@ class SentimentAnalyzer:
             print("警告：在聚合情感时，没有有效的日期数据。")
             return pd.DataFrame(columns=['daily_sentiment_score', 'daily_sentiment_std', 'daily_comment_count'])
 
+        # 确保时间格式正确
         df['timestamp'] = pd.to_datetime(df['timestamp'])
 
+        # 如果有点赞数，加权处理情感分数
         if '点赞数' in df.columns:
             df['weighted_sentiment'] = df['sentiment_score'] * (1 + np.log2(df['点赞数'] + 1))
         else:
             df['weighted_sentiment'] = df['sentiment_score']
 
+        # 按日期分组计算统计指标
         grouped = df.set_index('timestamp').groupby(pd.Grouper(freq='D'))['weighted_sentiment']
 
         daily_sentiment = pd.DataFrame({

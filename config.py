@@ -2,8 +2,7 @@ import os
 from datetime import datetime, timedelta
 
 # --- Tushare API 配置 ---
-TUSHARE_TOKEN = os.getenv('TUSHARE_TOKEN', '')  # 需由用户在本地环境变量中配置
-GUBA_COOKIE = os.getenv('GUBA_COOKIE', '')  # 东方财富股吧 Cookie，不上传真实值
+TUSHARE_TOKEN = os.getenv('TUSHARE_TOKEN', '')  # 请通过环境变量配置
 
 # --- 目标股票与时间范围 ---
 STOCK_CODE = '000001.SZ'

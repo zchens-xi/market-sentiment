@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动态股票分析报告</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh;
+        }
+        
+        .container { 
+            max-width: 1200px; 
+            margin: auto; 
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            margin: -30px -30px 40px -30px;
+        }
+        
+        h1 { 
+            color: white; 
+            border-bottom: none; 
+            padding-bottom: 10px; 
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        h2 { 
+            color: #0056b3; 
+            border-bottom: 2px solid #0056b3; 
+            padding-bottom: 10px; 
+            margin-top: 40px;
+        }
+        
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 20px; 
+            margin: 30px 0;
+        }
+        
+        .card { 
+            padding: 25px; 
+            border-radius: 12px; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .metric { 
+            font-size: 1.8em; 
+            font-weight: bold; 
+            color: #007bff; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .status-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #28a745;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .status-bar.updating {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .status-bar.error {
+            background: #dc3545;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loader { 
+            border: 4px solid #f3f3f3; 
+            border-radius: 50%; 
+            border-top: 4px solid #3498db; 
+            width: 40px; 
+            height: 40px; 
+            animation: spin 1s linear infinite; 
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .loading-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(255,255,255,0.95); 
+            z-index: 9999; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+        }
+        
+        .loading-text { 
+            margin-top: 20px; 
+            font-size: 1.3em; 
+            color: #333; 
+            text-align: center;
+        }
+        
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        footer { 
+            text-align: center; 
+            margin-top: 50px; 
+            color: #6c757d; 
+            font-size: 0.9em; 
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div id="status-bar" class="status-bar" style="display: none;">
+        <span id="status-message">系统就绪</span>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader"></div>
+        <p class="loading-text">正在加载股票分析数据，请稍候...</p>
+    </div>
+
+    <div class="container" id="report-container" style="display:none;">
+        <div class="header">
+            <h1 id="report-title">股票分析报告</h1>
+            <p>实时数据分析 · 智能决策支持</p>
+        </div>
+
+        <div class="info-box">
+            <p><strong>分析目标：</strong><span id="stock-name-code"></span></p>
+            <p><strong>分析周期：</strong><span id="start-date"></span> 至 <span id="end-date"></span></p>
+            <p><strong>分析内容：</strong>公众评论情感与股票价格变动的相关性分析</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="refreshData()" id="refresh-btn">
+                <span id="refresh-text">刷新数据</span>
+            </button>
+            <button class="btn" onclick="toggleAutoRefresh()" id="auto-refresh-btn">
+                <span id="auto-refresh-text">开启自动刷新</span>
+            </button>
+        </div>
+
+        <h2>关键指标摘要</h2>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value" id="overall-corr">--</div>
+                <div class="stat-label">整体相关系数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="max-lead-corr">--</div>
+                <div class="stat-label">最大领先相关性</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="max-lag-corr">--</div>
+                <div class="stat-label">最大滞后相关性</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="total-days">--</div>
+                <div class="stat-label">分析天数</div>
+            </div>
+        </div>
+
+        <h2>详细分析结果</h2>
+        <div class="card">
+            <p><strong>情感领先价格效应：</strong>情感变化领先股价 <span class="metric" id="max-lead-day">--</span> 天，最大相关性为 <span class="metric" id="max-lead-corr-detail">--</span></p>
+            <p><strong>价格影响情绪效应：</strong>股价变化影响情绪滞后 <span class="metric" id="max-lag-day">--</span> 天，最大相关性为 <span class="metric" id="max-lag-corr-detail">--</span></p>
+        </div>
+
+        <h2>可视化分析</h2>
+        <div class="grid">
+            <div class="card" id="price-sentiment-fig">
+                <h3>价格与情感走势</h3>
+                <p>加载中...</p>
+            </div>
+            <div class="card" id="scatterplot-fig">
+                <h3>相关性散点图</h3>
+                <p>加载中...</p>
+            </div>
+            <div class="card" id="rolling-corr-fig">
+                <h3>滚动相关性</h3>
+                <p>加载中...</p>
+            </div>
+            <div class="card" id="lagged-corr-fig">
+                <h3>滞后相关性</h3>
+                <p>加载中...</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>报告生成时间：<span id="generated-at">--</span></p>
+            <p>最后更新：<span id="last-update">--</span></p>
+            <p>股票分析系统 © 2025 - 基于机器学习的情感分析</p>
+        </footer>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let isAutoRefresh = false;
+
+        function showStatus(message, type = 'info') {
+            const statusBar = document.getElementById('status-bar');
+            const statusMessage = document.getElementById('status-message');
+            
+            statusMessage.textContent = message;
+            statusBar.className = `status-bar ${type}`;
+            statusBar.style.display = 'block';
+            
+            setTimeout(() => {
+                statusBar.style.display = 'none';
+            }, 3000);
+        }
+
+        function setLoadingState(isLoading) {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const refreshText = document.getElementById('refresh-text');
+            
+            if (isLoading) {
+                refreshBtn.disabled = true;
+                refreshText.innerHTML = '<div class="loader" style="width:20px;height:20px;border-width:2px;margin-right:5px;"></div>更新中...';
+            } else {
+                refreshBtn.disabled = false;
+                refreshText.textContent = '刷新数据';
+            }
+        }
+
+        function refreshData() {
+            setLoadingState(true);
+            showStatus('正在刷新数据...', 'updating');
+            
+            fetch('/refresh')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showStatus('刷新失败: ' + data.error, 'error');
+                    } else {
+                        updateContent(data);
+                        showStatus('数据刷新成功!', 'info');
+                    }
+                })
+                .catch(error => {
+                    console.error('刷新数据时出错:', error);
+                    showStatus('刷新失败，请检查网络连接', 'error');
+                })
+                .finally(() => {
+                    setLoadingState(false);
+                });
+        }
+
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('auto-refresh-btn');
+            const text = document.getElementById('auto-refresh-text');
+            
+            if (isAutoRefresh) {
+                clearInterval(autoRefreshInterval);
+                isAutoRefresh = false;
+                text.textContent = '开启自动刷新';
+                btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                showStatus('自动刷新已关闭', 'info');
+            } else {
+                autoRefreshInterval = setInterval(refreshData, 300000); // 5分钟
+                isAutoRefresh = true;
+                text.textContent = '关闭自动刷新';
+                btn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+                showStatus('自动刷新已开启（每5分钟）', 'info');
+            }
+        }
+
+        function updateContent(data) {
+            // 更新基本信息
+            document.getElementById('report-title').textContent = data.title || '股票分析报告';
+            document.getElementById('stock-name-code').textContent = `${data.stock_name} (${data.stock_code})`;
+            document.getElementById('start-date').textContent = data.start_date;
+            document.getElementById('end-date').textContent = data.end_date;
+            document.getElementById('generated-at').textContent = data.generated_at;
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+
+            // 更新关键指标
+            const corrMetrics = data.corr_metrics || {};
+            document.getElementById('overall-corr').textContent = corrMetrics.overall ? corrMetrics.overall.toFixed(4) : 'N/A';
+            document.getElementById('max-lead-corr').textContent = corrMetrics.max_lead_corr ? corrMetrics.max_lead_corr.toFixed(4) : 'N/A';
+            document.getElementById('max-lag-corr').textContent = corrMetrics.max_lag_corr ? corrMetrics.max_lag_corr.toFixed(4) : 'N/A';
+            
+            // 更新详细数据
+            document.getElementById('max-lead-day').textContent = corrMetrics.max_lead_day || 'N/A';
+            document.getElementById('max-lead-corr-detail').textContent = corrMetrics.max_lead_corr ? corrMetrics.max_lead_corr.toFixed(4) : 'N/A';
+            document.getElementById('max-lag-day').textContent = corrMetrics.max_lag_day || 'N/A';
+            document.getElementById('max-lag-corr-detail').textContent = corrMetrics.max_lag_corr ? corrMetrics.max_lag_corr.toFixed(4) : 'N/A';
+
+            // 更新统计信息
+            const stats = data.statistics || {};
+            document.getElementById('total-days').textContent = stats.total_days || 'N/A';
+
+            // 更新图表
+            if (data.figures) {
+                document.getElementById('price-sentiment-fig').innerHTML = '<h3>价格与情感走势</h3>' + (data.figures.price_sentiment || '<p>图表数据不可用</p>');
+                document.getElementById('scatterplot-fig').innerHTML = '<h3>相关性散点图</h3>' + (data.figures.scatterplot || '<p>图表数据不可用</p>');
+                document.getElementById('rolling-corr-fig').innerHTML = '<h3>滚动相关性</h3>' + (data.figures.rolling_corr || '<p>图表数据不可用</p>');
+                document.getElementById('lagged-corr-fig').innerHTML = '<h3>滞后相关性</h3>' + (data.figures.lagged_corr || '<p>图表数据不可用</p>');
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener("DOMContentLoaded", function() {
+            showStatus('正在加载数据...', 'updating');
+            
+            fetch('/data')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络响应错误');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        showStatus("加载数据失败: " + data.error, 'error');
+                        document.getElementById('loading-overlay').innerHTML = `<p class="loading-text">数据加载失败: ${data.error}</p>`;
+                        return;
+                    }
+
+                    updateContent(data);
+                    
+                    // 显示主内容
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    document.getElementById('report-container').style.display = 'block';
+                    
+                    showStatus('数据加载完成!', 'info');
+                })
+                .catch(error => {
+                    console.error('获取数据时出错:', error);
+                    showStatus('加载失败，请刷新页面重试', 'error');
+                    document.getElementById('loading-overlay').innerHTML = `<p class="loading-text">加载报告时发生错误，请刷新页面重试。</p>`;
+                });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动态股票分析报告</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        h1, h2 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; }
+        .card { padding: 20px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
+        .metric { font-size: 1.5em; font-weight: bold; color: #007bff; }
+        footer { text-align: center; margin-top: 30px; color: #6c757d; font-size: 0.9em; }
+        .loader { border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid #3498db; width: 60px; height: 60px; -webkit-animation: spin 2s linear infinite; /* Safari */ animation: spin 2s linear infinite; position: absolute; top: 50%; left: 50%; margin-top: -30px; margin-left: -30px; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .loading-text { margin-top: 20px; font-size: 1.2em; color: #333; }
+        /* Safari */
+        @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader"></div>
+        <p class="loading-text">正在努力加载并分析最新数据，请稍候...</p>
+    </div>
+
+    <div class="container" id="report-container" style="display:none;">
+        <h1 id="report-title"></h1>
+        <p>本报告旨在分析 <b id="stock-name-code"></b> 在 <b id="start-date"></b> 到 <b id="end-date"></b> 期间，公众评论情感与股票价格变动之间的相关性。</p>
+
+        <h2>关键指标摘要</h2>
+        <div class="card">
+            <p>情感与收益率整体相关系数: <span class="metric" id="overall-corr"></span></p>
+            <p>情感领先价格相关性峰值: <span class="metric" id="max-lead-corr"></span> (领先 <span id="max-lead-day"></span> 天)</p>
+            <p>价格影响情绪相关性峰值: <span class="metric" id="max-lag-corr"></span> (滞后 <span id="max-lag-day"></span> 天)</p>
+        </div>
+
+        <h2>可视化分析</h2>
+        <div class="grid">
+            <div class="card" id="price-sentiment-fig"></div>
+            <div class="card" id="scatterplot-fig"></div>
+            <div class="card" id="rolling-corr-fig"></div>
+            <div class="card" id="lagged-corr-fig"></div>
+        </div>
+
+        <footer>报告生成于 <span id="generated-at"></span></footer>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('/data')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络响应错误');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert("加载数据失败: " + data.error);
+                        document.getElementById('loading-overlay').innerHTML = `<p class="loading-text">数据加载失败: ${data.error}</p>`;
+                        return;
+                    }
+
+                    // --- 更新标题和基础信息 ---
+                    document.getElementById('report-title').innerText = data.title;
+                    document.getElementById('stock-name-code').innerText = `${data.stock_name} (${data.stock_code})`;
+                    document.getElementById('start-date').innerText = data.start_date;
+                    document.getElementById('end-date').innerText = data.end_date;
+                    document.getElementById('generated-at').innerText = data.generated_at;
+
+                    // --- 更新关键指标 ---
+                    const corrMetrics = data.corr_metrics;
+                    document.getElementById('overall-corr').innerText = corrMetrics.overall ? corrMetrics.overall.toFixed(4) : 'N/A';
+                    document.getElementById('max-lead-corr').innerText = corrMetrics.max_lead_corr ? corrMetrics.max_lead_corr.toFixed(4) : 'N/A';
+                    document.getElementById('max-lead-day').innerText = corrMetrics.max_lead_day !== 'N/A' ? corrMetrics.max_lead_day : 'N/A';
+                    document.getElementById('max-lag-corr').innerText = corrMetrics.max_lag_corr ? corrMetrics.max_lag_corr.toFixed(4) : 'N/A';
+                    document.getElementById('max-lag-day').innerText = corrMetrics.max_lag_day !== 'N/A' ? corrMetrics.max_lag_day : 'N/A';
+
+                    // --- 插入图表 ---
+                    document.getElementById('price-sentiment-fig').innerHTML = data.figures.price_sentiment;
+                    document.getElementById('scatterplot-fig').innerHTML = data.figures.scatterplot;
+                    document.getElementById('rolling-corr-fig').innerHTML = data.figures.rolling_corr;
+                    document.getElementById('lagged-corr-fig').innerHTML = data.figures.lagged_corr;
+
+                    // --- 显示报告 ---
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    document.getElementById('report-container').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('获取数据时出错:', error);
+                    document.getElementById('loading-overlay').innerHTML = `<p class="loading-text">加载报告时发生严重错误，请查看控制台了解详情。</p>`;
+                });
+        });
+    </script>
+</body>
+</html>
+
