@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+data/xueqiu_cookies.json
+
+# Generated / large data
+data/raw/*.csv
+data/processed/*.csv
+debug/
+*.pth
+
+# Generated reports
+reports/figures/
+reports/*.html
+reports - 副本/
+
+# OS
+.DS_Store
+Thumbs.db
